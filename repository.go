@@ -26,7 +26,7 @@ type Link struct {
 }
 
 type RepositoryList struct {
-    Values        []Repository `json:"values"`
+    Values        []*Repository `json:"values"`
     Size          int          `json:"size"`
     Limit         int          `json:"limit"`
     Start         int32        `json:"start"`
@@ -46,7 +46,7 @@ type RepositoriesQuery struct {
     Limit       int
 }
 
-func (a *API) getRepositoryEndpoint() (*url.URL, error) {
+func (a *API) getRepositoriesEndpoint() (*url.URL, error) {
     return url.ParseRequestURI(a.endpoint.String() + "/rest/api/latest/repos")
 }
 
@@ -83,12 +83,12 @@ func addRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
 }
 
 func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, error) {
-    ep, err := a.getRepositoryEndpoint()
+    u, err := a.getRepositoriesEndpoint()
     if err != nil {
         return nil, err
     }
-    ep.RawQuery = addRepositoriesQueryParams(query).Encode()
-    req, err := http.NewRequest("GET", ep.String(), nil)
+    u.RawQuery = addRepositoriesQueryParams(query).Encode()
+    req, err := http.NewRequest("GET", u.String(), nil)
     req.SetBasicAuth(a.username, a.token)
     req.Header.Set("Content-Type", "application/json")
 
