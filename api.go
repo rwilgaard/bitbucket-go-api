@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type API struct {
@@ -30,7 +31,10 @@ func NewAPI(endpoint string, username string, token string) (*API, error) {
 
     a := new(API)
     a.endpoint = u
-    a.Client = &http.Client{Transport: tr}
+    a.Client = &http.Client{
+        Transport: tr,
+        Timeout: 10 * time.Second,
+    }
     a.username = username
     a.token = token
 
