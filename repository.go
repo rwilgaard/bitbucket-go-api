@@ -1,29 +1,31 @@
 package gobitbucket
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strconv"
+    "encoding/json"
+    "io/ioutil"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
-type Project struct {
-    Name string
-    Key  string
-}
-
 type Repository struct {
-    Name          string `json:"name"`
-    ID            int    `json:"id"`
-    Slug          string `json:"slug"`
-    Public        bool   `json:"public"`
-    DefaultBranch string `json:"defaultBranch"`
-    URL           string
-    Project       *Project
+    Name        string            `json:"name"`
+    ID          int               `json:"id,omitempty"`
+    Slug        string            `json:"slug,omitempty"`
+    Public      bool              `json:"public,omitempty"`
+    Archived    bool              `json:"archived,omitempty"`
+    Description string            `json:"description,omitempty"`
+    State       string            `json:"state,omitempty"`
+    Project     Project           `json:"project,omitempty"`
+    Links       map[string][]Link `json:"links,omitempty"`
 }
 
-type AllRepositories struct {
+type Link struct {
+    Name string `json:"name,omitempty"`
+    Href string `json:"href"`
+}
+
+type RepositoryList struct {
     Values        []Repository `json:"values"`
     Size          int          `json:"size"`
     Limit         int          `json:"limit"`
@@ -80,7 +82,7 @@ func addRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
     return &data
 }
 
-func (a *API) GetRepositories(query RepositoriesQuery) (*AllRepositories, error) {
+func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, error) {
     ep, err := a.getRepositoryEndpoint()
     if err != nil {
         return nil, err
@@ -105,7 +107,7 @@ func (a *API) GetRepositories(query RepositoriesQuery) (*AllRepositories, error)
         panic(err)
     }
 
-    var AllRepositories AllRepositories
+    var AllRepositories RepositoryList
     json.Unmarshal(res, &AllRepositories)
 
     return &AllRepositories, nil
