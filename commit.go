@@ -1,12 +1,12 @@
 package gobitbucket
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strconv"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Comitter struct {
