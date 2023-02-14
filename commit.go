@@ -1,12 +1,12 @@
 package gobitbucket
 
 import (
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
-    "net/http"
-    "net/url"
-    "strconv"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
 )
 
 type Comitter struct {
@@ -96,26 +96,30 @@ func (a *API) GetCommits(query CommitsQuery) (*CommitList, error) {
     }
     u.RawQuery = addCommitsQueryParams(query).Encode()
     req, err := http.NewRequest("GET", u.String(), nil)
+    if err != nil {
+        return nil, err
+    }
     req.SetBasicAuth(a.username, a.token)
     req.Header.Set("Content-Type", "application/json")
 
     resp, err := a.Client.Do(req)
     if err != nil {
-        panic(err)
+        return nil, err
     }
 
-    res, err := ioutil.ReadAll(resp.Body)
+    res, err := io.ReadAll(resp.Body)
     if err != nil {
-        panic(err)
+        return nil, err
     }
 
-    err = resp.Body.Close()
-    if err != nil {
-        panic(err)
+    if err = resp.Body.Close(); err != nil {
+        return nil, err
     }
 
     var commits CommitList
-    json.Unmarshal(res, &commits)
+    if err := json.Unmarshal(res, &commits); err != nil {
+        return nil, err
+    }
 
     return &commits, nil
 }

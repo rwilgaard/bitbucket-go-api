@@ -1,11 +1,11 @@
 package gobitbucket
 
 import (
-    "encoding/json"
-    "io/ioutil"
-    "net/http"
-    "net/url"
-    "strconv"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
 )
 
 type Repository struct {
@@ -46,10 +46,6 @@ type RepositoriesQuery struct {
     Limit       int
 }
 
-func (a *API) getRepositoriesEndpoint() (*url.URL, error) {
-    return url.ParseRequestURI(a.endpoint.String() + "/rest/api/latest/repos")
-}
-
 func addRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
     data := url.Values{}
     if query.Archived != "" {
@@ -83,32 +79,36 @@ func addRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
 }
 
 func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, error) {
-    u, err := a.getRepositoriesEndpoint()
+    u, err := url.ParseRequestURI(a.endpoint.String() + "/rest/api/latest/repos")
     if err != nil {
         return nil, err
     }
     u.RawQuery = addRepositoriesQueryParams(query).Encode()
     req, err := http.NewRequest("GET", u.String(), nil)
+    if err != nil {
+        return nil, err
+    }
     req.SetBasicAuth(a.username, a.token)
     req.Header.Set("Content-Type", "application/json")
 
     resp, err := a.Client.Do(req)
     if err != nil {
-        panic(err)
+        return nil, err
     }
 
-    res, err := ioutil.ReadAll(resp.Body)
+    res, err := io.ReadAll(resp.Body)
     if err != nil {
-        panic(err)
+        return nil, err
     }
 
-    err = resp.Body.Close()
-    if err != nil {
-        panic(err)
+    if err = resp.Body.Close(); err != nil {
+        return nil, err
     }
 
     var AllRepositories RepositoryList
-    json.Unmarshal(res, &AllRepositories)
+    if err := json.Unmarshal(res, &AllRepositories); err != nil {
+        return nil, err
+    }
 
     return &AllRepositories, nil
 }
