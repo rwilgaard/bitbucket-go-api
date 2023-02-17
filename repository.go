@@ -1,11 +1,11 @@
 package gobitbucket
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/url"
-	"strconv"
+    "encoding/json"
+    "io"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Repository struct {
@@ -27,11 +27,11 @@ type Link struct {
 
 type RepositoryList struct {
     Values        []*Repository `json:"values"`
-    Size          int          `json:"size"`
-    Limit         int          `json:"limit"`
-    Start         int32        `json:"start"`
-    IsLastPage    bool         `json:"isLastPage"`
-    NextPageStart int32        `json:"nextPageStart"`
+    Size          int           `json:"size"`
+    Limit         int           `json:"limit"`
+    Start         int32         `json:"start"`
+    IsLastPage    bool          `json:"isLastPage"`
+    NextPageStart int32         `json:"nextPageStart"`
 }
 
 type RepositoriesQuery struct {
@@ -78,37 +78,39 @@ func addRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
     return &data
 }
 
-func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, error) {
+func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, *http.Response, error) {
     u, err := url.ParseRequestURI(a.endpoint.String() + "/rest/api/latest/repos")
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
     u.RawQuery = addRepositoriesQueryParams(query).Encode()
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
     req.SetBasicAuth(a.username, a.token)
     req.Header.Set("Content-Type", "application/json")
 
     resp, err := a.Client.Do(req)
     if err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
     res, err := io.ReadAll(resp.Body)
     if err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
     if err = resp.Body.Close(); err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
-    var AllRepositories RepositoryList
-    if err := json.Unmarshal(res, &AllRepositories); err != nil {
-        return nil, err
+    repos := RepositoryList{
+        IsLastPage: true,
+    }
+    if err := json.Unmarshal(res, &repos); err != nil {
+        return nil, resp, err
     }
 
-    return &AllRepositories, nil
+    return &repos, resp, nil
 }
