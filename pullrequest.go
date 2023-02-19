@@ -1,9 +1,7 @@
 package gobitbucket
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -34,21 +32,21 @@ type Participant struct {
 }
 
 type PullRequest struct {
-    Version      int32          `json:"version"`
-    Locked       bool           `json:"locked"`
-    ID           int64          `json:"id"`
-    State        string         `json:"state"`
-    Open         bool           `json:"open"`
+    Version      int32          `json:"version,omitempty"`
+    Locked       bool           `json:"locked,omitempty"`
+    ID           int64          `json:"id,omitempty"`
+    State        string         `json:"state,omitempty"`
+    Open         bool           `json:"open,omitempty"`
     Title        string         `json:"title"`
-    Closed       bool           `json:"closed"`
-    ToRef        *ToRef         `json:"toRef"`
-    CreatedDate  int64          `json:"createdDate"`
-    FromRef      *FromRef       `json:"fromRef"`
-    Participants []*Participant `json:"participants"`
-    ClosedDate   int64          `json:"closedDate"`
-    Reviewers    []*Participant `json:"reviewers"`
-    Description  string         `json:"description"`
-    UpdatedDate  int64          `json:"updatedDate"`
+    Closed       bool           `json:"closed,omitempty"`
+    ToRef        *ToRef         `json:"toRef,omitempty"`
+    CreatedDate  int64          `json:"createdDate,omitempty"`
+    FromRef      *FromRef       `json:"fromRef,omitempty"`
+    Participants []*Participant `json:"participants,omitempty"`
+    ClosedDate   int64          `json:"closedDate,omitempty"`
+    Reviewers    []*Participant `json:"reviewers,omitempty"`
+    Description  string         `json:"description,omitempty"`
+    UpdatedDate  int64          `json:"updatedDate,omitempty"`
 }
 
 type PullRequestList struct {
@@ -74,7 +72,7 @@ type PullRequestsQuery struct {
     Limit          int    // Number of items to return. If not passed, a page size of 25 is used.
 }
 
-func addPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
+func getPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
     data := url.Values{}
     if query.WithAttributes != "" {
         data.Set("withAttributes", query.WithAttributes)
@@ -106,38 +104,21 @@ func addPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
     return &data
 }
 
-func (a *API) GetPullRequests(query PullRequestsQuery) (*PullRequestList, error) {
-    p := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/pull-requests", query.ProjectKey, query.RepositorySlug)
-    u, err := url.ParseRequestURI(a.endpoint.String() + p)
+func (a *API) GetPullRequests(query PullRequestsQuery) (*PullRequestList, *http.Response, error) {
+    params := getPullRequestsQueryParams(query)
+    path := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/pull-requests", query.ProjectKey, query.RepositorySlug)
+    req, err := a.NewRequest("GET", path, nil, params)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
-    u.RawQuery = addPullRequestsQueryParams(query).Encode()
-    req, err := http.NewRequest("GET", u.String(), nil)
+
+    pr := PullRequestList{
+        IsLastPage: true,
+    }
+    resp, err := a.Do(req, &pr)
     if err != nil {
-        return nil, err
-    }
-    req.SetBasicAuth(a.username, a.token)
-    req.Header.Set("Content-Type", "application/json")
-
-    resp, err := a.Client.Do(req)
-    if err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
-    res, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, err
-    }
-
-    if err = resp.Body.Close(); err != nil {
-        return nil, err
-    }
-
-    var pr PullRequestList
-    if err := json.Unmarshal(res, &pr); err != nil {
-        return nil, err
-    }
-
-    return &pr, nil
+    return &pr, resp, nil
 }

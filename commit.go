@@ -1,9 +1,7 @@
 package gobitbucket
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -52,12 +50,7 @@ type CommitsQuery struct {
     Limit          int
 }
 
-func (a *API) getCommitsEndpoint(query CommitsQuery) (*url.URL, error) {
-    p := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/commits", query.ProjectKey, query.RepositorySlug)
-    return url.ParseRequestURI(a.endpoint.String() + p)
-}
-
-func addCommitsQueryParams(query CommitsQuery) *url.Values {
+func getCommitsQueryParams(query CommitsQuery) *url.Values {
     data := url.Values{}
     if query.Path != "" {
         data.Set("path", query.Path)
@@ -89,37 +82,21 @@ func addCommitsQueryParams(query CommitsQuery) *url.Values {
     return &data
 }
 
-func (a *API) GetCommits(query CommitsQuery) (*CommitList, error) {
-    u, err := a.getCommitsEndpoint(query)
+func (a *API) GetCommits(query CommitsQuery) (*CommitList, *http.Response, error) {
+    params := getCommitsQueryParams(query)
+    path := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/commits", query.ProjectKey, query.RepositorySlug)
+    req, err := a.NewRequest("GET", path, nil, params)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
-    u.RawQuery = addCommitsQueryParams(query).Encode()
-    req, err := http.NewRequest("GET", u.String(), nil)
+
+    commits := CommitList{
+        IsLastPage: true,
+    }
+    resp, err := a.Do(req, &commits)
     if err != nil {
-        return nil, err
-    }
-    req.SetBasicAuth(a.username, a.token)
-    req.Header.Set("Content-Type", "application/json")
-
-    resp, err := a.Client.Do(req)
-    if err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
-    res, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, err
-    }
-
-    if err = resp.Body.Close(); err != nil {
-        return nil, err
-    }
-
-    var commits CommitList
-    if err := json.Unmarshal(res, &commits); err != nil {
-        return nil, err
-    }
-
-    return &commits, nil
+    return &commits, resp, nil
 }

@@ -1,9 +1,7 @@
 package gobitbucket
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -36,7 +34,7 @@ type TagsQuery struct {
     Limit          int
 }
 
-func addTagsQueryParams(query TagsQuery) *url.Values {
+func getTagsQueryParams(query TagsQuery) *url.Values {
     data := url.Values{}
     if query.OrderBy != "" {
         data.Set("orderBy", query.OrderBy)
@@ -53,38 +51,21 @@ func addTagsQueryParams(query TagsQuery) *url.Values {
     return &data
 }
 
-func (a *API) GetTags(query TagsQuery) (*TagList, error) {
-    p := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/tags", query.ProjectKey, query.RepositorySlug)
-    u, err := url.ParseRequestURI(a.endpoint.String() + p)
+func (a *API) GetTags(query TagsQuery) (*TagList, *http.Response, error) {
+    params := getTagsQueryParams(query)
+    path := fmt.Sprintf("/rest/api/latest/projects/%s/repos/%s/tags", query.ProjectKey, query.RepositorySlug)
+    req, err := a.NewRequest("GET", path, nil, params)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
-    u.RawQuery = addTagsQueryParams(query).Encode()
-    req, err := http.NewRequest("GET", u.String(), nil)
+
+    tags := TagList{
+        IsLastPage: true,
+    }
+    resp, err := a.Do(req, &tags) 
     if err != nil {
-        return nil, err
-    }
-    req.SetBasicAuth(a.username, a.token)
-    req.Header.Set("Content-Type", "application/json")
-
-    resp, err := a.Client.Do(req)
-    if err != nil {
-        return nil, err
+        return nil, resp, err
     }
 
-    res, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, err
-    }
-
-    if err = resp.Body.Close(); err != nil {
-        return nil, err
-    }
-
-    var tags TagList
-    if err := json.Unmarshal(res, &tags); err != nil {
-        return nil, err
-    }
-
-    return &tags, nil
+    return &tags, resp, nil
 }
