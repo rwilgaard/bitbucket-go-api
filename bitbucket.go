@@ -69,6 +69,7 @@ func (a *API) Do(req *http.Request, i interface{}) (*http.Response, error) {
     if err != nil {
         return nil, err
     }
+    defer resp.Body.Close()
 
     if err = CheckResponse(resp); err != nil {
         return resp, err
@@ -79,10 +80,6 @@ func (a *API) Do(req *http.Request, i interface{}) (*http.Response, error) {
     }
 
     if err = json.NewDecoder(resp.Body).Decode(i); err != nil {
-        return resp, err
-    }
-
-    if err = resp.Body.Close(); err != nil {
         return resp, err
     }
 
