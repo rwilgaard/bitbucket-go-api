@@ -1,9 +1,9 @@
 package gobitbucket
 
 import (
-	"net/http"
-	"net/url"
-	"strconv"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Repository struct {
@@ -24,12 +24,8 @@ type Link struct {
 }
 
 type RepositoryList struct {
-    Values        []*Repository `json:"values"`
-    Size          int           `json:"size"`
-    Limit         int           `json:"limit"`
-    Start         int32         `json:"start"`
-    IsLastPage    bool          `json:"isLastPage"`
-    NextPageStart int32         `json:"nextPageStart"`
+    Values []*Repository `json:"values"`
+    Page
 }
 
 type RepositoriesQuery struct {
@@ -40,8 +36,8 @@ type RepositoriesQuery struct {
     Name        string
     Permission  string // REPO_READ,REPO_WRITE,REPO_ADMIN
     State       string // AVAILABLE,INITIALISING,INITIALISATION_FAILED
-    Start       int
-    Limit       int
+    Start       uint
+    Limit       uint
 }
 
 func getRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
@@ -68,10 +64,10 @@ func getRepositoriesQueryParams(query RepositoriesQuery) *url.Values {
         data.Set("state", query.State)
     }
     if query.Start != 0 {
-        data.Set("start", strconv.Itoa(query.Start))
+        data.Set("start", strconv.FormatUint(uint64(query.Start), 10))
     }
     if query.Limit != 0 {
-        data.Set("limit", strconv.Itoa(query.Limit))
+        data.Set("limit", strconv.FormatUint(uint64(query.Limit), 10))
     }
     return &data
 }
@@ -84,7 +80,9 @@ func (a *API) GetRepositories(query RepositoriesQuery) (*RepositoryList, *http.R
     }
 
     repos := RepositoryList{
-        IsLastPage: true,
+        Page: Page{
+            IsLastPage: true,
+        },
     }
     resp, err := a.Do(req, &repos)
     if err != nil {

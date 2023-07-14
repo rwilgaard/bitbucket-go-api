@@ -1,10 +1,10 @@
 package gobitbucket
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+    "fmt"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Branch struct {
@@ -17,12 +17,8 @@ type Branch struct {
 }
 
 type BranchList struct {
-    Values        []*Branch `json:"values"`
-    Size          int       `json:"size"`
-    Limit         int       `json:"limit"`
-    Start         int32     `json:"start"`
-    IsLastPage    bool      `json:"isLastPage"`
-    NextPageStart int32     `json:"nextPageStart"`
+    Values []*Branch `json:"values"`
+    Page
 }
 
 type BranchesQuery struct {
@@ -33,8 +29,8 @@ type BranchesQuery struct {
     Details        bool   // Whether to retrieve plugin-provided metadata about each branch
     FilterText     string // The text to match on
     Base           string // Base branch or tag to compare each branch to (for the metadata providers that uses that information
-    Start          int
-    Limit          int
+    Start          uint
+    Limit          uint
 }
 
 func getBranchesQueryParams(query BranchesQuery) *url.Values {
@@ -55,10 +51,10 @@ func getBranchesQueryParams(query BranchesQuery) *url.Values {
         data.Set("base", query.Base)
     }
     if query.Start != 0 {
-        data.Set("start", strconv.Itoa(query.Start))
+        data.Set("start", strconv.FormatUint(uint64(query.Start), 10))
     }
     if query.Limit != 0 {
-        data.Set("limit", strconv.Itoa(query.Limit))
+        data.Set("limit", strconv.FormatUint(uint64(query.Limit), 10))
     }
     return &data
 }
@@ -72,7 +68,9 @@ func (a *API) GetBranches(query BranchesQuery) (*BranchList, *http.Response, err
     }
 
     branches := BranchList{
-        IsLastPage: true,
+        Page: Page{
+            IsLastPage: true,
+        },
     }
     resp, err := a.Do(req, &branches)
     if err != nil {

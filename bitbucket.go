@@ -1,36 +1,44 @@
 package gobitbucket
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "net/url"
 )
 
+type Page struct {
+    Size          uint `json:"size"`
+    Limit         uint `json:"limit"`
+    Start         uint `json:"start"`
+    IsLastPage    bool `json:"isLastPage"`
+    NextPageStart uint `json:"nextPageStart"`
+}
+
 type ErrorResponse struct {
-	*http.Response
-	Errors []ErrorMessage
+    *http.Response
+    Errors []ErrorMessage
 }
 
 type ErrorMessage struct {
-	Message   string `json:"message,omitempty"`
-	Exception string `json:"exceptionName,omitempty"`
+    Message   string `json:"message,omitempty"`
+    Exception string `json:"exceptionName,omitempty"`
 }
 
 func (e *ErrorResponse) Error() string {
-	return fmt.Sprintf("%v %v: %d %+v",
-		e.Response.Request.Method, e.Response.Request.URL,
-		e.Response.StatusCode, e.Errors)
+    return fmt.Sprintf("%v %v: %d %+v",
+        e.Response.Request.Method, e.Response.Request.URL,
+        e.Response.StatusCode, e.Errors)
 }
 
 func CheckResponse(res *http.Response) error {
-	if c := res.StatusCode; 200 <= c && c <= 299 {
-		return nil
-	}
+    if c := res.StatusCode; 200 <= c && c <= 299 {
+        return nil
+    }
 
-	return &ErrorResponse{Response: res}
+    return &ErrorResponse{Response: res}
 }
 
 func (a *API) NewRequest(method string, path string, body interface{}, params *url.Values) (*http.Request, error) {
@@ -39,16 +47,16 @@ func (a *API) NewRequest(method string, path string, body interface{}, params *u
         return nil, err
     }
 
-	var buf io.ReadWriter
-	if body != nil {
-		buf = &bytes.Buffer{}
-		enc := json.NewEncoder(buf)
-		enc.SetEscapeHTML(false)
-		err := enc.Encode(body)
-		if err != nil {
-			return nil, err
-		}
-	}
+    var buf io.ReadWriter
+    if body != nil {
+        buf = &bytes.Buffer{}
+        enc := json.NewEncoder(buf)
+        enc.SetEscapeHTML(false)
+        err := enc.Encode(body)
+        if err != nil {
+            return nil, err
+        }
+    }
 
     u.RawQuery = params.Encode()
 

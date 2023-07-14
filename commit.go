@@ -1,10 +1,10 @@
 package gobitbucket
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+    "fmt"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Comitter struct {
@@ -28,12 +28,8 @@ type Commit struct {
 }
 
 type CommitList struct {
-    Values        []*Commit `json:"values"`
-    Size          int       `json:"size"`
-    Limit         int       `json:"limit"`
-    Start         int32     `json:"start"`
-    IsLastPage    bool      `json:"isLastPage"`
-    NextPageStart int32     `json:"nextPageStart"`
+    Values []*Commit `json:"values"`
+    Page
 }
 
 type CommitsQuery struct {
@@ -46,8 +42,8 @@ type CommitsQuery struct {
     Since          string // The commit ID or ref (exclusively) to retrieve commits after
     Merges         string // exclude,include,only for merge commits
     IgnoreMissing  string
-    Start          int
-    Limit          int
+    Start          uint
+    Limit          uint
 }
 
 func getCommitsQueryParams(query CommitsQuery) *url.Values {
@@ -74,10 +70,10 @@ func getCommitsQueryParams(query CommitsQuery) *url.Values {
         data.Set("ignoreMissing", query.IgnoreMissing)
     }
     if query.Start != 0 {
-        data.Set("start", strconv.Itoa(query.Start))
+        data.Set("start", strconv.FormatUint(uint64(query.Start), 10))
     }
     if query.Limit != 0 {
-        data.Set("limit", strconv.Itoa(query.Limit))
+        data.Set("limit", strconv.FormatUint(uint64(query.Limit), 10))
     }
     return &data
 }
@@ -91,7 +87,9 @@ func (a *API) GetCommits(query CommitsQuery) (*CommitList, *http.Response, error
     }
 
     commits := CommitList{
-        IsLastPage: true,
+        Page: Page{
+            IsLastPage: true,
+        },
     }
     resp, err := a.Do(req, &commits)
     if err != nil {
