@@ -1,10 +1,10 @@
 package gobitbucket
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+    "fmt"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type ToRef struct {
@@ -50,12 +50,8 @@ type PullRequest struct {
 }
 
 type PullRequestList struct {
-    Values        []*PullRequest `json:"values"`
-    Size          int            `json:"size"`
-    Limit         int            `json:"limit"`
-    Start         int32          `json:"start"`
-    IsLastPage    bool           `json:"isLastPage"`
-    NextPageStart int32          `json:"nextPageStart"`
+    Values []*PullRequest `json:"values"`
+    Page
 }
 
 type PullRequestsQuery struct {
@@ -68,8 +64,8 @@ type PullRequestsQuery struct {
     State          string // (optional, defaults to OPEN). Supply ALL to return pull request in any state. If a state is supplied only pull requests in the specified state will be returned. Either OPEN, DECLINED or MERGED.
     Order          string // (optional, defaults to NEWEST) the order to return pull requests in, either OLDEST (as in: "oldest first") or NEWEST.
     Direction      string // (optional, defaults to INCOMING) the direction relative to the specified repository. Either INCOMING or OUTGOING.
-    Start          int    // Start number for the page (inclusive). If not passed, first page is assumed.
-    Limit          int    // Number of items to return. If not passed, a page size of 25 is used.
+    Start          uint    // Start number for the page (inclusive). If not passed, first page is assumed.
+    Limit          uint    // Number of items to return. If not passed, a page size of 25 is used.
 }
 
 func getPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
@@ -96,10 +92,10 @@ func getPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
         data.Set("direction", query.Direction)
     }
     if query.Start != 0 {
-        data.Set("start", strconv.Itoa(query.Start))
+        data.Set("start", strconv.FormatUint(uint64(query.Start), 10))
     }
     if query.Limit != 0 {
-        data.Set("limit", strconv.Itoa(query.Limit))
+        data.Set("limit", strconv.FormatUint(uint64(query.Limit), 10))
     }
     return &data
 }
@@ -113,7 +109,9 @@ func (a *API) GetPullRequests(query PullRequestsQuery) (*PullRequestList, *http.
     }
 
     pr := PullRequestList{
-        IsLastPage: true,
+        Page: Page{
+            IsLastPage: true,
+        },
     }
     resp, err := a.Do(req, &pr)
     if err != nil {

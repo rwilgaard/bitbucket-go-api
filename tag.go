@@ -1,10 +1,10 @@
 package gobitbucket
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+    "fmt"
+    "net/http"
+    "net/url"
+    "strconv"
 )
 
 type Tag struct {
@@ -17,12 +17,8 @@ type Tag struct {
 }
 
 type TagList struct {
-    Values        []*Tag `json:"values"`
-    Size          int    `json:"size"`
-    Limit         int    `json:"limit"`
-    Start         int32  `json:"start"`
-    IsLastPage    bool   `json:"isLastPage"`
-    NextPageStart int32  `json:"nextPageStart"`
+    Values []*Tag `json:"values"`
+    Page
 }
 
 type TagsQuery struct {
@@ -30,8 +26,8 @@ type TagsQuery struct {
     RepositorySlug string
     OrderBy        string // Ordering of refs either ALPHABETICAL (by name) or MODIFICATION (last updated)
     FilterText     string
-    Start          int
-    Limit          int
+    Start          uint
+    Limit          uint
 }
 
 func getTagsQueryParams(query TagsQuery) *url.Values {
@@ -43,10 +39,10 @@ func getTagsQueryParams(query TagsQuery) *url.Values {
         data.Set("filterText", query.FilterText)
     }
     if query.Start != 0 {
-        data.Set("start", strconv.Itoa(query.Start))
+        data.Set("start", strconv.FormatUint(uint64(query.Start), 10))
     }
     if query.Limit != 0 {
-        data.Set("limit", strconv.Itoa(query.Limit))
+        data.Set("limit", strconv.FormatUint(uint64(query.Limit), 10))
     }
     return &data
 }
@@ -60,9 +56,11 @@ func (a *API) GetTags(query TagsQuery) (*TagList, *http.Response, error) {
     }
 
     tags := TagList{
-        IsLastPage: true,
+        Page: Page{
+            IsLastPage: true,
+        },
     }
-    resp, err := a.Do(req, &tags) 
+    resp, err := a.Do(req, &tags)
     if err != nil {
         return nil, resp, err
     }
