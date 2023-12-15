@@ -64,8 +64,12 @@ type PullRequestsQuery struct {
     State          string // (optional, defaults to OPEN). Supply ALL to return pull request in any state. If a state is supplied only pull requests in the specified state will be returned. Either OPEN, DECLINED or MERGED.
     Order          string // (optional, defaults to NEWEST) the order to return pull requests in, either OLDEST (as in: "oldest first") or NEWEST.
     Direction      string // (optional, defaults to INCOMING) the direction relative to the specified repository. Either INCOMING or OUTGOING.
-    Start          uint    // Start number for the page (inclusive). If not passed, first page is assumed.
-    Limit          uint    // Number of items to return. If not passed, a page size of 25 is used.
+    Start          uint   // Start number for the page (inclusive). If not passed, first page is assumed.
+    Limit          uint   // Number of items to return. If not passed, a page size of 25 is used.
+}
+
+type InboxPullRequestCount struct {
+    Count uint `json:"count"`
 }
 
 func getPullRequestsQueryParams(query PullRequestsQuery) *url.Values {
@@ -120,3 +124,20 @@ func (a *API) GetPullRequests(query PullRequestsQuery) (*PullRequestList, *http.
 
     return &pr, resp, nil
 }
+
+func (a *API) GetInboxPullRequestCount() (*InboxPullRequestCount, *http.Response, error) {
+    path := "/rest/api/latest/inbox/pull-requests/count"
+    req, err := a.NewRequest("GET", path, nil, nil)
+    if err != nil {
+        return nil, nil, err
+    }
+
+    pr := new(InboxPullRequestCount)
+    resp, err := a.Do(req, pr)
+    if err != nil {
+        return nil, resp, err
+    }
+
+    return pr, resp, nil
+}
+

@@ -58,7 +58,9 @@ func (a *API) NewRequest(method string, path string, body interface{}, params *u
         }
     }
 
-    u.RawQuery = params.Encode()
+    if params != nil {
+        u.RawQuery = params.Encode()
+    }
 
     req, err := http.NewRequest(method, u.String(), buf)
     if err != nil {
